@@ -95,7 +95,7 @@ function Install-SqlServer {
     Write-Host "### SQL Server Unattended Installation for [$DestinationServer] ###" -ForegroundColor Yellow
 
     if(!$InstallEngine -and !$InstallCU -and !$InstallSSMS) {
-        Write-Host "No action."
+        Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff '[$DestinationServer] No action.'") -ForegroundColor Gray
     }
     else {
     
@@ -122,15 +122,15 @@ function Install-SqlServer {
     
         #region dbatools
         if (Get-Module -ListAvailable -Name dbatools) {
-            Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff 'dbatools module exists. Skipping this command.'") -ForegroundColor Gray
+            Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff '[$DestinationServer] dbatools module exists. Skipping this command.'") -ForegroundColor Gray
             Import-Module dbatools
         }
         else {
-            Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff 'dbatools module does not exist. Downloading...'") -NoNewline
+            Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff '[$DestinationServer] dbatools module does not exist. Downloading... '") -NoNewline
             Install-PackageProvider -Name NuGet -Force -Confirm:$false > $null 
             Install-module dbatools -Force -Confirm:$false
             Import-Module dbatools
-            Write-Host " OK" -ForegroundColor Green
+            Write-Host "OK" -ForegroundColor Green
         }
         #endregion dbatools
    
@@ -141,19 +141,19 @@ function Install-SqlServer {
         $IsoFileName = Get-ChildItem -Path "$SetupFilesPath\$Version" -Filter "*$Version*.ISO" | 
             Sort-Object @{Expression = {$_.VersionInfo.ProductBuildPart}; Descending = $true} | Select-Object -First 1 -ExpandProperty Name
     
-        Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff 'Mounting ISO file...'") -NoNewline
+        Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff '[$DestinationServer] Mounting ISO file... '") -NoNewline
         $mountResult = Mount-DiskImage -ImagePath "$SetupFilesPath\$Version\$IsoFileName" -PassThru 
         $volumeInfo = $mountResult | Get-Volume
         $driveInfo = Get-PSDrive -Name $volumeInfo.DriveLetter
-        Write-Host " OK" -ForegroundColor Green
+        Write-Host "OK" -ForegroundColor Green
         
             Start-Sleep -Seconds 1
 
-        Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff 'Extracting ISO files to remote folder...'") -NoNewline
+        Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff '[$DestinationServer] Extracting ISO files to remote folder... '") -NoNewline
         Remove-Item -Path ("$RemoteSetupFilesPathUnc\$IsoFileName").Replace(".ISO", "\") -Force -ErrorAction SilentlyContinue -Recurse -Confirm:$false 
         Copy-Item -Path $driveInfo.Root -Destination ("$RemoteSetupFilesPathUnc\$IsoFileName").Replace(".ISO", "\") -Recurse
         Dismount-DiskImage -ImagePath "$SetupFilesPath\$Version\$IsoFileName"
-        Write-Host " OK" -ForegroundColor Green
+        Write-Host "OK" -ForegroundColor Green
        
         #Custom Config
         $config = @{
@@ -192,7 +192,7 @@ function Install-SqlServer {
         }
     
         #Install Engine
-        Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff 'Installing engine...'") 
+        Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff '[$DestinationServer] Installing engine... '") 
         Install-DbaInstance @InstallParams
     
     }
@@ -200,7 +200,7 @@ function Install-SqlServer {
     
     #region InstallCU
     if ($InstallCU) {
-        Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff 'Installing CU to $DestinationServer...'") 
+        
         $CuFilePath = "\\$env:COMPUTERNAME\" + (Get-ChildItem -Path $SetupFilesPath\$Version -Filter "SQLServer$Version*" | 
                 Sort-Object @{Expression = {$_.VersionInfo.ProductBuildPart}; Descending = $true} | Select-Object -First 1 -ExpandProperty FullName).Replace(':', '$')
         #Install CU
@@ -216,7 +216,9 @@ function Install-SqlServer {
             EnableException = $EnableException
         }
     
+        Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff '[$DestinationServer] Installing CU... '")
         Update-DbaInstance @UpdateParams 
+
     }
     #endregion InstallCU
     
@@ -225,9 +227,7 @@ function Install-SqlServer {
         #Copy SSMS exe
         Copy-Item -Path "$SetupFilesPath\Tools\SSMS-Setup-ENU.exe" -Destination $RemoteSetupFilesPathUnc -Force
     
-        #Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff 'Restarting $DestinationServer...'") 
-        #Restart-Computer -ComputerName $DestinationServer -Wait -For WinRM -Force
-        Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff 'Installing SSMS...'") 
+        Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff '[$DestinationServer] Installing SSMS... '") -NoNewline
         $ArgList = "/install /quiet /norestart /log $RemoteSetupFilesPath\Log\ssms.log"
     
         Invoke-Command -ComputerName $DestinationServer -Authentication Credssp -Credential $Credential -ScriptBlock {
@@ -237,10 +237,10 @@ function Install-SqlServer {
         } -ArgumentList $RemoteSetupFilesPath, $ArgList -Verbose:$VerboseCommand
     
         if (Get-Content -Path "$RemoteSetupFilesPathUnc\Log\ssms.log" -Tail 1 | Select-String "Exit code: 0x0, restarting" -Quiet) {
-            Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff 'SSMS has been successfully installed.'") 
+            Write-Host "OK" -ForegroundColor Green
         }
         else {
-            Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff 'SSMS installation has failed.'") 
+            Write-Host "Failed" -ForegroundColor Red
         }
     }
     #endregion InstallSSMS
