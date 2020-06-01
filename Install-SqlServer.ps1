@@ -23,9 +23,9 @@
             -SSMS setup files.
     
     My folder structure for SQL Server 2019
-        S:\Setup\2019\SqlServer2019.ISO
-        S:\Setup\2019\SQLServer2019-KB4548597-x64.exe
-        S:\Setup\Tools\SSMS-Setup-ENU.exe
+        C:\Setup\2019\SqlServer2019.ISO
+        C:\Setup\2019\SQLServer2019-KB4548597-x64.exe
+        C:\Setup\Tools\SSMS-Setup-ENU.exe
 
 .EXAMPLE
     #With this example, you can install a SQL engine, cumulative update and management studio on "SqlServer01".
