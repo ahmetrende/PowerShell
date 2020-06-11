@@ -1,3 +1,21 @@
+<#PSScriptInfo
+
+.SYNOPSIS
+    Invoke-CbQuery
+    
+.DESCRIPTION
+    Execute N1QL query on Couchbase using N1QL rest-api.
+
+.EXAMPLE
+    #
+    
+.NOTES
+    Version     : 1.0 (2020-06-11)
+    File Name   : Invoke-CbQuery.ps1
+    Author      : Ahmet Rende (ahmet@ahmetrende.com) 
+    GitHub      : https://github.com/ahmetrende
+
+#>
 Function Invoke-CbQuery {
     [CmdletBinding()]
     param (
@@ -7,7 +25,6 @@ Function Invoke-CbQuery {
         ,[string]$UserName
         ,[string]$Password
         ,[int]$N1qlPort = 8093
-        #,[int]$Timeout = 600
         ,[ValidateSet("Default", "Json", "PSCustomObject", "OnlyStatus")][string]$As = "Default"
         ,[int]$DepthForJson = 50
         ,[int]$RetryCount = 3 
@@ -24,7 +41,6 @@ Function Invoke-CbQuery {
     $Uri =  "http://$($CbServer):$N1qlPort/query/service"
     $Body = @{
         statement = $Query;
-        #timeout="$($Timeout)s"      
     }
     $Headers = @{
         Authorization = ("Basic {0}" -f $base64AuthInfo)
