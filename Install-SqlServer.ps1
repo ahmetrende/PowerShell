@@ -13,7 +13,7 @@
     - CredSSP authentication
     - Standard folder structure*
     - Active directory environment
-
+    
     *The folder structure should be like this:
     <YourSetupFolderPath>
         -VersionNumber
@@ -29,7 +29,7 @@
 
 .EXAMPLE
     #With this example, you can install a SQL engine, cumulative update and management studio on "SqlServer01".
-
+    
     $CredEngine = Get-Credential
     $CredSa     = Get-Credential 'sa'
     $Params     = @{
@@ -41,10 +41,10 @@
         InstallSSMS = $true
         SqlCollation = "Latin1_General_CI_AS"
         InstancePath = "C:\Program Files\Microsoft SQL Server"
-        DataPath = "D:\Data"
-        LogPath = "L:\Log"
-        TempPath = "T:\TempDB"
-        BackupPath = "B:\Backup"
+        DataPath = "C:\Data"
+        LogPath = "C:\Log"
+        TempPath = "C:\TempDB"
+        BackupPath = "C:\Backup"
         EngineCredential = $CredEngine
         AgentCredential = $CredEngine
         SaCredential = $CredSa
@@ -58,7 +58,7 @@
     Install-SqlServer @Params 
     
 .NOTES
-    Version     : 1.0 (2020-05-31)
+    Version     : 1.1 (2020-06-11)
     File Name   : Install-SqlServer.ps1
     Author      : Ahmet Rende (ahmet@ahmetrende.com) 
     GitHub      : https://github.com/ahmetrende
@@ -90,8 +90,10 @@ function Install-SqlServer {
         ,[switch]$VerboseCommand
         ,[switch]$EnableException
     )
+    
 
     $ErrorActionPreference = 'Stop'
+    $DestinationServer = [System.Net.Dns]::GetHostByName($DestinationServer) | select -ExpandProperty HostName
     Write-Host "### SQL Server Unattended Installation for [$DestinationServer] ###" -ForegroundColor Yellow
 
     if(!$InstallEngine -and !$InstallCU -and !$InstallSSMS) {
@@ -104,10 +106,11 @@ function Install-SqlServer {
         if(!$AgentCredential) { $AgentCredential = $EngineCredential }
         if(!$Credential) { $Credential = $EngineCredential }
 
+        $SetupFilesPathUnc = "\\$(([System.Net.Dns]::GetHostByName(($env:COMPUTERNAME))).HostName)\$($SetupFilesPath.Replace(':', '$'))\$Version"
         $RemoteSetupFilesPath = "$($InstancePath.SubString(0,1)):\SqlServerSetup"
         $RemoteSetupFilesPathUnc = "\\$DestinationServer\$RemoteSetupFilesPath" -replace ':', '$'
         #endregion Internal Params
-    
+
         #region CredSSP
         Enable-WSManCredSSP -DelegateComputer '*' -Force -Role Client > $null
         Enable-WSManCredSSP -Force -Role Server > $null
@@ -189,6 +192,7 @@ function Install-SqlServer {
             Configuration = $config 
             Confirm = $false 
             EnableException = $EnableException
+            UpdateSourcePath = $SetupFilesPathUnc
         }
     
         #Install Engine
@@ -201,8 +205,9 @@ function Install-SqlServer {
     #region InstallCU
     if ($InstallCU) {
         
-        $CuFilePath = "\\$env:COMPUTERNAME\" + (Get-ChildItem -Path $SetupFilesPath\$Version -Filter "SQLServer$Version*" | 
-                Sort-Object @{Expression = {$_.VersionInfo.ProductBuildPart}; Descending = $true} | Select-Object -First 1 -ExpandProperty FullName).Replace(':', '$')
+        $CuFilePath = Get-ChildItem -Path $SetupFilesPathUnc -Filter "SQLServer$Version*" | 
+                Sort-Object @{Expression = {$_.VersionInfo.ProductBuildPart}; Descending = $true} | Select-Object -First 1 -ExpandProperty FullName
+        
         #Install CU
         $UpdateParams = @{
             ComputerName = $DestinationServer
@@ -223,7 +228,7 @@ function Install-SqlServer {
     #endregion InstallCU
     
     #region InstallSSMS
-    if ($InstallSSMS) {
+    if ($InstallSSMS -and !$WhatIf) {
         #Copy SSMS exe
         Copy-Item -Path "$SetupFilesPath\Tools\SSMS-Setup-ENU.exe" -Destination $RemoteSetupFilesPathUnc -Force
     
@@ -243,8 +248,13 @@ function Install-SqlServer {
             Write-Host "Failed" -ForegroundColor Red
         }
     }
+    elseif ($InstallSSMS -and $WhatIf){
+        Write-Host "What if: Performing the operation `"Install SSMS`" on target `"$DestinationServer`"."
+
+    }
     #endregion InstallSSMS
 
-    Write-Host "### SQL Server Unattended Installation for [$DestinationServer] ###" -ForegroundColor Green
-
+    if($InstallEngine -or $InstallCU -or $InstallSSMS) { 
+        Write-Host "### SQL Server Unattended Installation for [$DestinationServer] ###" -ForegroundColor Green
+    }
 }
