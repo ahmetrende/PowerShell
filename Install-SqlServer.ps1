@@ -74,7 +74,7 @@ function Install-SqlServer {
         ,[switch]$InstallEngine
         ,[switch]$InstallCU
         ,[switch]$InstallSSMS
-        ,[string]$SqlCollation = "Latin1_General_CI_AS" #"Turkish_CI_AS"
+        ,[string]$SqlCollation = "Latin1_General_CI_AS" 
         ,[string]$InstancePath = "C:\Program Files\Microsoft SQL Server"
         ,[string]$DataPath = "C:\Data"
         ,[string]$LogPath = "C:\Log"
