@@ -10,7 +10,7 @@
     #
     
 .NOTES
-    Version     : 1.0 (2020-06-11)
+    Version     : 1.1 (2020-06-12)
     File Name   : Invoke-CbQuery.ps1
     Author      : Ahmet Rende (ahmet@ahmetrende.com) 
     GitHub      : https://github.com/ahmetrende
@@ -45,7 +45,6 @@ Function Invoke-CbQuery {
     $Headers = @{
         Authorization = ("Basic {0}" -f $base64AuthInfo)
     } 
-
     #endregion Params
 
     while ($true) {
@@ -61,20 +60,17 @@ Function Invoke-CbQuery {
              else { throw $_ }
         }
     }
-
-
+   
     if ($As -eq "Default") {
         $ApiResult
     }
-    elseif ($As -eq "Json" -and !([string]::IsNullOrEmpty($ApiResult.results))) {
+    elseif ($As -eq "Json" -and ($ApiResult.results)) {
         $ApiResult | select -ExpandProperty results | ConvertTo-Json -Depth $DepthForJson | Get-DecodedString
     }
-    elseif ($As -eq "PSCustomObject" -and !([string]::IsNullOrEmpty($ApiResult.results))) {
+    elseif ($As -eq "PSCustomObject" -and ($ApiResult.results)) {
         $ApiResult | select -ExpandProperty results | ConvertTo-Json -Depth $DepthForJson | Get-DecodedString | ConvertFrom-Json
     }
-     elseif ($As -eq "OnlyStatus" -and !([string]::IsNullOrEmpty($ApiResult.status))) {
+     elseif ($As -eq "OnlyStatus" -and ($ApiResult.status)) {
         $ApiResult | select -ExpandProperty status
     }
-
 }
-
