@@ -58,7 +58,7 @@
     Install-SqlServer @Params 
     
 .NOTES
-    Version     : 1.1 (2020-06-11)
+    Version     : 1.2 (2020-09-15)
     File Name   : Install-SqlServer.ps1
     Author      : Ahmet Rende (ahmet@ahmetrende.com) 
     GitHub      : https://github.com/ahmetrende
@@ -194,7 +194,7 @@ function Install-SqlServer {
             EnableException = $EnableException
             UpdateSourcePath = $SetupFilesPathUnc
         }
-    
+
         #Install Engine
         Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff '[$DestinationServer] Installing engine... '") 
         Install-DbaInstance @InstallParams
@@ -220,7 +220,8 @@ function Install-SqlServer {
             Confirm = $false 
             EnableException = $EnableException
         }
-    
+        
+        Get-DbaBuildReference -Update -EnableException
         Write-Host (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff '[$DestinationServer] Installing CU... '")
         Update-DbaInstance @UpdateParams 
 
