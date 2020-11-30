@@ -10,7 +10,7 @@
     #
     
 .NOTES
-    Version     : 1.1 (2020-06-12)
+    Version     : 1.2 (2020-11-30)
     File Name   : Invoke-CbQuery.ps1
     Author      : Ahmet Rende (ahmet@ahmetrende.com) 
     GitHub      : https://github.com/ahmetrende
@@ -19,7 +19,7 @@
 Function Invoke-CbQuery {
     [CmdletBinding()]
     param (
-         [string]$CbServer
+         [Parameter(Mandatory=$true)][string]$CbServer
         ,[Parameter(Mandatory=$true)][string]$Query
         ,[PSCredential]$CbCredential
         ,[string]$UserName
@@ -27,10 +27,11 @@ Function Invoke-CbQuery {
         ,[int]$N1qlPort = 8093
         ,[ValidateSet("Default", "Json", "PSCustomObject", "OnlyStatus")][string]$As = "Default"
         ,[int]$DepthForJson = 50
-        ,[int]$RetryCount = 3 
-        ,[int]$RetryDelayMs = 1000
+        ,[int]$RetryCount = 5
+        ,[int]$RetryDelayMs = 500
     )
 
+    $ErrorActionPreference = 'stop'
     #region Params
     if ($CbCredential) {
         $UserName = $CbCredential.UserName
@@ -46,6 +47,24 @@ Function Invoke-CbQuery {
         Authorization = ("Basic {0}" -f $base64AuthInfo)
     } 
     #endregion Params
+
+    #region Fix encoding problem
+    Function Get-DecodedString { 
+        [cmdletbinding()]Param (
+            [parameter(ValueFromPipeline)]$wrong_string
+        )
+        
+        if ([System.Text.Encoding]::Default.CodePage -ne 65001){
+            $utf8 = [System.Text.Encoding]::GetEncoding(65001) 
+            $iso88591 = [System.Text.Encoding]::GetEncoding('ISO-8859-9')
+            $wrong_bytes = $utf8.GetBytes($wrong_string)
+            $right_bytes = [System.Text.Encoding]::Convert($utf8,$iso88591,$wrong_bytes) #Look carefully 
+            $right_string = $utf8.GetString($right_bytes) #Look carefully 
+            $right_string
+        }
+        else {$wrong_string}
+    }
+    #endregion Fix encoding problem
 
     while ($true) {
         try {
