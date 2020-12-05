@@ -10,7 +10,7 @@
     #
     
 .NOTES
-    Version     : 1.2 (2020-11-30)
+    Version     : 1.3 (2020-12-05)
     File Name   : Invoke-CbQuery.ps1
     Author      : Ahmet Rende (ahmet@ahmetrende.com) 
     GitHub      : https://github.com/ahmetrende
@@ -42,6 +42,7 @@ Function Invoke-CbQuery {
     $Uri =  "http://$($CbServer):$N1qlPort/query/service"
     $Body = @{
         statement = $Query;
+        timeout = "-1s";
     }
     $Headers = @{
         Authorization = ("Basic {0}" -f $base64AuthInfo)
